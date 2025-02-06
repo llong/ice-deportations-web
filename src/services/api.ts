@@ -27,3 +27,11 @@ export async function processImage(
     return null;
   }
 }
+
+export const fetchLatestData = async () => {
+  const response = await fetch("/api/latest");
+  if (!response.ok) {
+    throw new Error("Failed to fetch latest data");
+  }
+  return response.json();
+};

@@ -43,9 +43,8 @@ export function predictFutureValue(
   data: Array<[Date, number]>,
   targetDate: Date
 ): number {
-  // Convert dates to day numbers (0 = first date)
   const startDate = data[0][0].getTime();
-  const normalizedData = data.map(([date, value]) => [
+  const normalizedData: [number, number][] = data.map(([date, value]) => [
     (date.getTime() - startDate) / (1000 * 60 * 60 * 24),
     value,
   ]);

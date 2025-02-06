@@ -18,6 +18,12 @@ body {
   }
 
   .chart-container {
-    @apply bg-white p-6 rounded-lg shadow-md mt-8;
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }

@@ -1,18 +1,23 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { Header } from '../Header';
+import { render, screen } from "@testing-library/react";
+import { Header } from "../Header";
 
-describe('Header', () => {
-  it('renders title and subtitle', () => {
-    render(<Header />);
-    
-    expect(screen.getByText('ICE Deportation Tracker')).toBeInTheDocument();
-    expect(screen.getByText('Real-time tracking of ICE enforcement actions')).toBeInTheDocument();
+describe("Header", () => {
+  it("renders title and subtitle", () => {
+    render(<Header onForceRefresh={() => Promise.resolve()} loading={false} />);
+
+    expect(screen.getByText(/ICE Deportation Tracker/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Real-time tracking of ICE enforcement/i)
+    ).toBeInTheDocument();
   });
 
-  it('has correct styling classes', () => {
-    render(<Header />);
-    const header = screen.getByRole('banner');
-    expect(header).toHaveClass('bg-ice-blue');
+  it("has correct styling classes", () => {
+    render(<Header onForceRefresh={() => Promise.resolve()} loading={false} />);
+    const header = screen.getByRole("banner");
+    expect(header).toHaveClass(
+      "bg-gradient-to-r",
+      "from-blue-600",
+      "to-blue-800"
+    );
   });
-}); 
+});

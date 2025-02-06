@@ -68,6 +68,10 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    console.log("Current data:", data);
+  }, [data]);
+
   const loadData = async () => {
     try {
       setError(null);
@@ -148,7 +152,7 @@ export default function App() {
               {data.length > 0 && (
                 <>
                   <div className="mt-12">
-                    <Chart data={data} />
+                    <Chart key={JSON.stringify(data)} data={data} />
                   </div>
                   <PredictionDisplay data={data} />
                 </>
