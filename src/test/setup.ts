@@ -2,42 +2,39 @@ import "@testing-library/jest-dom";
 import { expect, afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { mockDeportationData } from "./test-utils";
 
-const supabaseResponse = Promise.resolve({
-  data: mockDeportationData,
-  error: null,
-});
-
-const orderMock = () => ({
-  ...supabaseResponse,
-  throwOnError: () => supabaseResponse,
-});
-
-const selectMock = () => ({
-  order: orderMock,
-  throwOnError: () => supabaseResponse,
-});
-
-// Mock Supabase client
+// Mock Supabase client with real-time functionality
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
-    from: () => ({
-      select: selectMock,
-      upsert: () => Promise.resolve({ error: null }),
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      throwOnError: vi.fn().mockResolvedValue({ data: [], error: null }),
     }),
-    channel: () => ({
-      on: () => ({
-        subscribe: () => ({
-          unsubscribe: vi.fn(),
-        }),
-      }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
     }),
   }),
 }));
+
+// Mock axios for API tests
+vi.mock("axios", () => ({
+  default: {
+    create: () => ({
+      get: vi.fn(),
+      post: vi.fn(),
+    }),
+  },
+}));
+
+// Mock fetch for API tests
+vi.stubGlobal("fetch", vi.fn());
 
 expect.extend(matchers);
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });

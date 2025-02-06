@@ -14,16 +14,20 @@ import {
 import { DeportationData } from "./types";
 import { toast, Toaster } from "react-hot-toast";
 import { supabase } from "./lib/supabase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function App() {
-  const [data, setData] = useState<DeportationData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
+  const {
+    data = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["deportationData"],
+    queryFn: async () => {
       const { data: deportationData, error } = await supabase
         .from("deportation_data")
         .select("*")
@@ -31,17 +35,20 @@ export default function App() {
         .throwOnError();
 
       if (error) throw error;
-      setData(deportationData || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+      return deportationData || [];
+    },
+  });
+
+  // Handle query error
+  useEffect(() => {
+    if (queryError) {
+      setError(
+        queryError instanceof Error ? queryError.message : "Failed to load data"
+      );
     }
-  };
+  }, [queryError]);
 
   useEffect(() => {
-    fetchData();
-
     // Set up real-time subscription
     const subscription = supabase
       .channel("deportation_changes")
@@ -54,79 +61,43 @@ export default function App() {
         },
         () => {
           console.log("Database changed, refreshing data...");
-          fetchData();
+          toast.loading("Fetching new data...", { id: "realtime-update" });
+          // Invalidate and refetch
+          queryClient.invalidateQueries({ queryKey: ["deportationData"] });
+          toast.success("Data updated!", { id: "realtime-update" });
         }
       )
       .subscribe();
 
-    // Also poll every minute as a fallback
-    const pollInterval = setInterval(fetchData, 60000);
-
     return () => {
       subscription.unsubscribe();
-      clearInterval(pollInterval);
     };
-  }, []);
-
-  useEffect(() => {
-    console.log("Current data:", data);
-  }, [data]);
-
-  const loadData = async () => {
-    try {
-      setError(null);
-      const { data: initialData, isStale } = await fetchDeportationData();
-      setData(initialData);
-
-      if (isStale && !refreshing) {
-        setRefreshing(true);
-        toast.loading("Checking for new data...", { id: "refresh-toast" });
-
-        await fetchFreshData();
-
-        const { data: freshData } = await fetchDeportationData();
-        setData(freshData);
-
-        toast.success("Data updated!", { id: "refresh-toast" });
-        setRefreshing(false);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [queryClient]);
 
   const forceRefresh = async () => {
     try {
-      setLoading(true);
+      setRefreshing(true);
       toast.loading("Refreshing data...", { id: "refresh-toast" });
 
-      // Clear backend cache and trigger new fetch
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/clear-cache`,
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to refresh data");
-      }
+      if (!response.ok) throw new Error("Failed to refresh data");
 
-      // Wait a moment for the backend to process new data
+      // Wait for backend processing
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
-      // Fetch fresh data from Supabase
-      await fetchData();
+      // Invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ["deportationData"] });
 
       toast.success("Data refreshed!", { id: "refresh-toast" });
     } catch (error) {
       console.error("Error forcing refresh:", error);
       toast.error("Failed to refresh data", { id: "refresh-toast" });
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -140,7 +111,7 @@ export default function App() {
             <div className="bg-red-50 p-4 rounded-lg text-red-700">
               {error}
               <button
-                onClick={loadData}
+                onClick={forceRefresh}
                 className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
                 Retry
@@ -149,7 +120,7 @@ export default function App() {
           ) : (
             <>
               <StatsDisplay data={data} loading={loading} />
-              {data.length > 0 && (
+              {data?.length > 0 && (
                 <>
                   <div className="mt-12">
                     <Chart key={JSON.stringify(data)} data={data} />

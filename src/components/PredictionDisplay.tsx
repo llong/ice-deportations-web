@@ -3,12 +3,14 @@ import { DeportationData } from "../types";
 import { predictFutureValue, linearRegression } from "../utils/predictions";
 
 interface PredictionDisplayProps {
-  data: DeportationData[];
+  data: DeportationData[] | null;
 }
 
-export const PredictionDisplay = ({ data }: PredictionDisplayProps) => {
+export function PredictionDisplay({ data }: PredictionDisplayProps) {
   const predictions = useMemo(() => {
-    if (data.length < 2) return null;
+    if (!data || data.length < 3) {
+      return null;
+    }
 
     const sortedData = [...data].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -51,15 +53,23 @@ export const PredictionDisplay = ({ data }: PredictionDisplayProps) => {
     };
   }, [data]);
 
-  if (!predictions) return null;
+  if (!predictions) {
+    return (
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 rounded-lg text-white mt-12">
+        <h2 className="text-xl font-bold mb-4">Predictions</h2>
+        <p>Insufficient data for predictions</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-8 p-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg text-white">
-      <h2 className="text-xl font-bold mb-4">
-        Projected Numbers for January 1, 2026
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+    <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 rounded-lg text-white mt-12">
+      <h2 className="text-xl font-bold mb-4">Predictions</h2>
+      <div
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        data-testid="predictions-grid"
+      >
+        <div className="bg-white/10 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Projected Arrests</h3>
           <p className="text-3xl font-bold">
             {predictions.arrests.toLocaleString()}
@@ -68,7 +78,7 @@ export const PredictionDisplay = ({ data }: PredictionDisplayProps) => {
             Confidence: {predictions.confidence.arrests}%
           </p>
         </div>
-        <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+        <div className="bg-white/10 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Projected Detainers</h3>
           <p className="text-3xl font-bold">
             {predictions.detainers.toLocaleString()}
@@ -83,4 +93,4 @@ export const PredictionDisplay = ({ data }: PredictionDisplayProps) => {
       </p>
     </div>
   );
-};
+}

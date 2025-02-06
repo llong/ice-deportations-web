@@ -1,6 +1,6 @@
 import { DeportationData } from "../types";
 import { supabase } from "../lib/supabase";
-import { api } from "./api";
+import { api, fetchLatestData } from "./api";
 
 export async function fetchDeportationData(): Promise<{
   data: DeportationData[];
@@ -102,27 +102,14 @@ function isDataStale(data: DeportationData[] | null): boolean {
 // Separate function to fetch fresh data in the background
 export async function fetchFreshData(): Promise<void> {
   try {
-    console.log("Fetching fresh data in background...");
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/deportation-data`
-    );
-
-    if (!response.ok) {
-      throw new Error(`API error (${response.status})`);
+    const latestData = await fetchLatestData(); // Ensure this is called correctly
+    if (latestData.status === "success") {
+      for (const data of latestData.data) {
+        await updateDeportationData(data);
+      }
     }
-
-    const result = await response.json();
-    if (result.status !== "success" || !result.data) {
-      return; // No new data available
-    }
-
-    // Store any new data in Supabase
-    await Promise.all(
-      result.data.map((item: DeportationData) => storeData(item))
-    );
-
-    console.log("Fresh data stored successfully");
   } catch (error) {
     console.error("Error fetching fresh data:", error);
+    throw error; // Ensure to throw the error for the test to catch it
   }
 }

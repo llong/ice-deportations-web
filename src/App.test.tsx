@@ -3,86 +3,48 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { vi } from "vitest";
 
-// Mock chart.js using Vitest's vi.mock
-vi.mock("chart.js", () => ({
-  Chart: {
-    register: vi.fn(),
-    defaults: {},
-    controllers: {},
-    scales: {},
-    elements: {},
-  },
-  registerables: [],
-  CategoryScale: vi.fn(),
-  LinearScale: vi.fn(),
-  PointElement: vi.fn(),
-  LineElement: vi.fn(),
-  Title: vi.fn(),
-  Tooltip: vi.fn(),
-  Legend: vi.fn(),
-  Filler: vi.fn(),
-}));
-
-// Mock components
-vi.mock("./components/DeportationChart", () => ({
-  DeportationChart: () => null,
-}));
-
-vi.mock("./components/StatsDisplay", () => ({
-  StatsDisplay: () => null,
-}));
-
-vi.mock("./components/Header", () => ({
-  Header: () => null,
-}));
-
-vi.mock("./components/Footer", () => ({
-  Footer: () => null,
-}));
-
-vi.mock("react-hot-toast", () => ({
-  Toaster: () => null,
-}));
-
-// Mock fetch with complete Response properties
-global.fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
-  Promise.resolve(
-    new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      statusText: "OK",
-      headers: new Headers({
-        "Content-Type": "application/json",
-      }),
-    })
-  )
-) as unknown as jest.Mock;
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      staleTime: 0,
-      gcTime: 0,
-      refetchOnWindowFocus: false,
+// Create a test query client
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+      },
     },
-  },
-});
-
-describe("App", () => {
-  beforeEach(() => {
-    queryClient.clear();
   });
 
+// Mock the Supabase client
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      }),
+    }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
+    }),
+  },
+}));
+
+describe("App", () => {
   it("renders without crashing", async () => {
+    const queryClient = createTestQueryClient();
+
     render(
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
     );
 
-    // Wait for the main container to be rendered
     await waitFor(() => {
-      expect(screen.getByRole("main")).toBeInTheDocument();
+      expect(screen.getByText(/ICE Deportation Tracker/i)).toBeInTheDocument();
     });
   });
 });
